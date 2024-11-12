@@ -1,4 +1,4 @@
-# Code-for-Binary-image-classification-using-timm-module 
+# Code for Binary image classification using timm module 
 
 Timm module is a module that contains many CNN networks. We can use the script.py to do binary image classification by finetuning the models based on our dataset. 
 
