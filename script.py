@@ -1,3 +1,4 @@
+# Importing usefull modules
 import os
 import pandas as pd
 from PIL import Image
@@ -36,11 +37,11 @@ transform = transforms.Compose([
 ])
 
 # Data Loaders
-batch_size = 8
+batch_size = 8    # Keep is as high as our GPU memory allows for better convergence
 
-train_dataset = CustomDataset(csv_file='train.csv', img_dir='train_resized', transform=transform)
-val_dataset = CustomDataset(csv_file='val.csv', img_dir='val_resized', transform=transform)
-test_dataset = CustomDataset(csv_file='test.csv', img_dir='test_resized', transform=transform)
+train_dataset = CustomDataset(csv_file='train.csv', img_dir='train', transform=transform)
+val_dataset = CustomDataset(csv_file='val.csv', img_dir='val', transform=transform)
+test_dataset = CustomDataset(csv_file='test.csv', img_dir='test', transform=transform)
 
 train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
 val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
@@ -48,15 +49,15 @@ test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
 
 # Model
 device = 'cuda' if torch.cuda.is_available() else 'cpu' 
-model = timm.create_model('crossvit_18_dagger_408', pretrained=True, num_classes=1)
+model = timm.create_model('crossvit_18_dagger_408', pretrained=True, num_classes=1)    # Taking this model as starting point, this can be replaced 
 model = model.to(device)
 
 # Loss and Optimizer
-criterion = nn.BCEWithLogitsLoss()
+criterion = nn.BCEWithLogitsLoss()    # For binary classification
 optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
 
 # Calculate Sensitivity and Specificity 
-def calculate_sensitivity_specificity(y_true, y_pred):
+def calculate_sensitivity_specificity(y_true, y_pred):    # Usefull metric where the number of both categories is not ~50%, especially in medicat datasets where we need to minimise false negatives
     tn, fp, fn, tp = confusion_matrix(y_true, y_pred).ravel()
     sensitivity = tp / (tp + fn)
     specificity = tn / (tn + fp)
@@ -96,7 +97,7 @@ def train_model(model, train_loader, val_loader, criterion, optimizer, num_epoch
         if val_auc > best_val_auc:
             best_val_acc = val_acc
             best_val_auc = val_auc
-            torch.save(model.state_dict(), 'best_model_crossvit.pth')
+            torch.save(model.state_dict(), 'best_model_crossvit.pth')    # Save the model
 
     print(f'Best Validation Accuracy: {best_val_acc:.4f}')
     print(f'Best Validation AUC: {best_val_auc:.4f}')
@@ -126,7 +127,7 @@ def evaluate_model(model, data_loader, criterion):
     epoch_auc = roc_auc_score(all_labels, all_outputs)
     
     # Calculate sensitivity and specificity
-    sensitivity, specificity = calculate_sensitivity_specificity(all_labels, [1 if x >= 0.5 else 0 for x in all_outputs])
+    sensitivity, specificity = calculate_sensitivity_specificity(all_labels, [1 if x >= 0.5 else 0 for x in all_outputs])    # This can be adjusted according to the performance, in medical datasets , try taking the threshold as 0.4 instead
 
     return epoch_loss, epoch_acc, epoch_auc, sensitivity, specificity
 
@@ -137,5 +138,9 @@ train_model(model, train_loader, val_loader, criterion, optimizer, num_epochs=10
 model.load_state_dict(torch.load('best_model_crossvit.pth'))
 test_loss, test_acc, test_auc, test_sensitivity, test_specificity = evaluate_model(model, test_loader, criterion)
 
+# Returning the results
 print(f'Test Loss: {test_loss:.4f} Acc: {test_acc:.4f} AUC: {test_auc:.4f}')
-print(f'Test Sensitivity: {test_sensitivity:.4f} Specificity: {test_specificity:.4f}')
+print(f'Test Sensitivity: {test_sensitivity:.4f} Specificity: {test_specificity:.4f}')    
+
+
+# With slight modifications , we can automate the process such that the script will check a list of model and store their perfomance in a csv file. But this can be time taking and consume a lot of power.
