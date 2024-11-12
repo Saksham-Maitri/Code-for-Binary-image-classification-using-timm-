@@ -1,3 +1,6 @@
+# This file can be executed in google colab
+# For google colab, do !pip install timm and then run this code
+
 import timm
 
 all = []
